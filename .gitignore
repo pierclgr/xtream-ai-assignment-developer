@@ -166,3 +166,10 @@ cython_debug/
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/vcs.xml
 /.idea/xtream-ai-assignment-developer.iml
+
+
+models/
+
+data/
+
+.DS_Store

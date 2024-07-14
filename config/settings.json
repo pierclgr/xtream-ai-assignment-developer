@@ -1,0 +1,17 @@
+{
+  "dataset_path": "data",
+  "models_path": "models",
+  "test_size": 0.2,
+  "random_seed": 42,
+  "model": {
+    "class": "LinearRegression",
+    "params": {
+
+    }
+  },
+  "metrics": [
+    "r2_score",
+    "mean_absolute_error"
+  ],
+  "log_file": "logging.log"
+}
