@@ -34,7 +34,6 @@ class Trainer:
         self.model = None
         self.model_dir = model_dir
         self.log_normalize = log_normalize
-        self.study = optuna.create_study(direction='minimize', study_name='model_tuning')
 
         # create the directory containing the saved model if it does not exists
         if not os.path.exists(model_dir):
@@ -211,7 +210,7 @@ class Trainer:
         else:
             raise Exception("Model to evaluate not defined.")
 
-    def save(self, metrics: dict) -> Tuple[str, str]:
+    def save(self, metrics: dict, preprocessor: str) -> Tuple[str, str]:
         """
         Method that saves the trained model and its validation metrics into two different files.
 
@@ -219,6 +218,8 @@ class Trainer:
         ----------
         metrics: dict
             A dictionary containing validation metrics of the model to save.
+        preprocessor: dict
+            The used preprocessor.
 
         Returns
         -------
@@ -229,12 +230,24 @@ class Trainer:
         # generate id for the model
         id = uuid.uuid4()
 
-        model_filename = f"{type(self.model).__name__}_{id}_model.joblib"
-        metrics_filename = f"{type(self.model).__name__}_{id}_metrics.json"
+        model_filename = f"{type(self.model).__name__}_{id}.joblib"
+        metrics_filename = f"{type(self.model).__name__}_{id}.json"
 
         # create paths for the model file and the metrics file
-        model_path = os.path.join(self.model_dir, model_filename)
-        metrics_path = os.path.join(self.model_dir, metrics_filename)
+        model_weight_folder = os.path.join(self.model_dir, "weights")
+        if not os.path.exists(model_weight_folder):
+            os.makedirs(model_weight_folder)
+        model_path = os.path.join(model_weight_folder, model_filename)
+
+        model_metrics_folder = os.path.join(self.model_dir, "metrics")
+        if not os.path.exists(model_metrics_folder):
+            os.makedirs(model_metrics_folder)
+        metrics_path = os.path.join(model_metrics_folder, metrics_filename)
+
+        preprocessing_folder = os.path.join(self.model_dir, "preprocessing")
+        if not os.path.exists(preprocessing_folder):
+            os.makedirs(preprocessing_folder)
+        preprocessing_path = os.path.join(preprocessing_folder, metrics_filename)
 
         # save trained model
         dump(self.model, model_path)
@@ -242,5 +255,9 @@ class Trainer:
         # save model validation metrics
         with open(metrics_path, 'w') as f:
             json.dump(metrics, f)
+
+        # save preprocessor
+        with open(preprocessing_path, 'w') as f:
+            json.dump({"preprocessor": preprocessor, "log_normalize": self.log_normalize}, f)
 
         return model_path, metrics_path

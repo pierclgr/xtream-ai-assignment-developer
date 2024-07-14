@@ -1,0 +1,5 @@
+{
+  "models_path": "models",
+  "best_metric": "sklearn.metrics.r2_score",
+  "dataset_path": "data/diamonds.csv"
+}

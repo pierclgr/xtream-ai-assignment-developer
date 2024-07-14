@@ -2,6 +2,7 @@ from src.data_manager import DataLoader
 from src.trainer import Trainer
 from src.utils import load_module
 from typing import Tuple
+import os
 
 
 def training_pipeline(config: dict, dataset_file_path: str, logging) -> Tuple[dict, str, str]:
@@ -98,12 +99,12 @@ def training_pipeline(config: dict, dataset_file_path: str, logging) -> Tuple[di
 
         # save model and metrics
         logging.info(f"Saving model...")
-        model_path, metric_path = trainer.save(metrics=val_metrics)
+        model_path, metric_path = trainer.save(metrics=val_metrics, preprocessor=config["preprocessing_fn"])
         logging.info(f"Model saved to {model_path}, metrics saved to {metric_path}.")
 
         logging.info("Training pipeline completed!")
 
-        # retunr validation metrics and saved file paths
+        # return validation metrics and saved file paths
         return val_metrics, model_path, metric_path
 
     except Exception:

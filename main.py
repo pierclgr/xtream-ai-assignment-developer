@@ -71,8 +71,9 @@ class DatasetFolderHandler(FileSystemEventHandler):
             if filename.endswith('.csv'):
                 data_path = os.path.join(self.dataset_dir, filename)
                 logging.info(f"Processing file: {data_path}")
-                val_metrics, model_path, metrics_path = training_pipeline(self.config, dataset_file_path=data_path,
-                                                                          logging=logging)
+                training_pipeline(self.config, dataset_file_path=data_path,
+                                  logging=logging)
+
 
 def monitor_folder(config: dict) -> None:
     """

@@ -47,7 +47,7 @@ class DataLoader:
         -------
         None
         """
-
+        self.dataframe = diamond_preprocessor(self.dataframe)
         self.dataframe = preprocess_fn(self.dataframe)
 
     def train_test_split(self, test_size: float = 0.2, seed: int = 42) \
@@ -79,6 +79,27 @@ class DataLoader:
         return x_train, x_test, y_train, y_test
 
 
+def diamond_preprocessor(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """
+    Method that performs a generic preprocessing of a diamond dataset.
+
+    Parameters
+    ----------
+    dataframe: pd.DataFrame
+        The dataframe to preprocess.
+
+    Returns
+    -------
+    pd.DataFrame
+        The preprocessed dataset.
+    """
+
+    # remove negative prices and zero-dimensional stones samples
+    dataframe = dataframe[(dataframe.x * dataframe.y * dataframe.z != 0) & (dataframe.price > 0)]
+
+    return dataframe
+
+
 def diamond_linear_preprocessor(dataframe: pd.DataFrame) -> pd.DataFrame:
     """
     Function performing a preprocessing for diamonds dataset when using a Linear model.
@@ -93,9 +114,6 @@ def diamond_linear_preprocessor(dataframe: pd.DataFrame) -> pd.DataFrame:
     pd.DataFrame:
         The preprocessed dataframe.
     """
-
-    # remove negative prices and zero-dimensional stones samples
-    dataframe = dataframe[(dataframe.x * dataframe.y * dataframe.z != 0) & (dataframe.price > 0)]
 
     # remove irrelevant columns
     dataframe = dataframe.drop(columns=['depth', 'table', 'y', 'z'])
