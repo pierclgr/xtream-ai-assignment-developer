@@ -12,7 +12,7 @@ def training_pipeline(config: dict, dataset_file_path: str, logging) -> Tuple[di
     Parameters
     ----------
     config: dict
-        A dictionary containing the configuration parameters of the training pipeline.
+        A dictionary containing the configuration preprocessing of the training pipeline.
     dataset_file_path: str
         A string containing the path of the dataset to train.
     logging
@@ -75,10 +75,10 @@ def training_pipeline(config: dict, dataset_file_path: str, logging) -> Tuple[di
             logging.info("Done.")
             logging.info(f"Best hyperparameters: {best_params}")
 
-            # append the found hyperparameters to the training parameters
+            # append the found hyperparameters to the training preprocessing
             training_params.update(best_params)
 
-        # extract the training parameters from the configuration
+        # extract the training preprocessing from the configuration
         params = config["model"]["params"]
         if params:
             training_params.update(config["model"]["params"])

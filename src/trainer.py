@@ -41,7 +41,7 @@ class Trainer:
 
     def tune(self, x: pd.DataFrame, y: pd.Series, model, params: dict, tuning: dict) -> dict:
         """
-        Method that tunes the hyperparameters of the model, returning the best set of parameters found.
+        Method that tunes the hyperparameters of the model, returning the best set of preprocessing found.
 
         Parameters
         ----------
@@ -52,7 +52,7 @@ class Trainer:
         model:
             The model to tune.
         params: dict
-            The parameters of the model to tune.
+            The preprocessing of the model to tune.
         tuning: dict
             The hyperparameters to tune.
 
@@ -131,7 +131,7 @@ class Trainer:
         None
         """
 
-        # define model to train given its parameters
+        # define model to train given its preprocessing
         if not params:
             params = {}
         self.model = model(**params)

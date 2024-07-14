@@ -4,15 +4,33 @@ import json
 
 
 class ModelManager:
-    def __init__(self, config):
+    """
+    Class that represents a model manager
+    """
+    def __init__(self, config: dict) -> None:
+        """
+        Constructor method of the class ModelManager.
+
+        Parameters
+        ----------
+        config: dict
+            Dictionary containing the configuration.
+        """
+
         self.models_folder = os.path.join(config["models_path"], "weights")
         self.metrics_folder = os.path.join(config["models_path"], "metrics")
         self.preprocessor_folder = os.path.join(config["models_path"], "preprocessing")
         self.models = []
 
-        self.load_models_and_metrics()
+    def load_models_and_metrics(self) -> None:
+        """
+        Method that loads the models and metrics.
 
-    def load_models_and_metrics(self):
+        Returns
+        -------
+        None
+        """
+
         models_and_metrics = []
 
         # iterate through the files in the directory
@@ -48,7 +66,25 @@ class ModelManager:
 
         self.models = models_and_metrics
 
-    def get_best_model(self, score_name: str):
+    def get_best_model(self, score_name: str) -> dict:
+        """
+        Method that selects the best model accordingly to a given metric.
+
+        Parameters
+        ----------
+        score_name: str
+            The metric to use for the selection
+
+        Raises
+        ------
+        Exception when no trained model is available
+
+        Returns
+        -------
+        dict
+            The best selected model.
+        """
+
         best_score = 0
         best_model = None
         for model in self.models:
