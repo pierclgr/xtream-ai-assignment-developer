@@ -5,7 +5,7 @@ from src.pipeline import training_pipeline
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import time
-import shutil
+import traceback
 
 
 class DatasetFolderHandler(FileSystemEventHandler):
@@ -19,7 +19,7 @@ class DatasetFolderHandler(FileSystemEventHandler):
 
         Parameters
         ----------
-        config (dict):
+        config: dict
             The dictionary containing the settings of the training, extracted from the config file.
 
         Returns
@@ -30,8 +30,6 @@ class DatasetFolderHandler(FileSystemEventHandler):
         self.dataset_dir = config['dataset_path']
         self.last_modified = None
         self.config = config
-
-        self.models_history = []
 
     def on_any_event(self, event) -> None:
         """
@@ -69,29 +67,12 @@ class DatasetFolderHandler(FileSystemEventHandler):
         None
         """
 
-        self.models_history = []
-
-        # delete the models directory if it exists exits
-        model_dir = self.config['models_path']
-        if os.path.exists(model_dir):
-            shutil.rmtree(model_dir)
-
-        # create the models directory
-        os.makedirs(model_dir)
-
-        try:
-            for filename in os.listdir(self.dataset_dir):
-                if filename.endswith('.csv'):
-                    data_path = os.path.join(self.dataset_dir, filename)
-                    logging.info(f"Processing file: {data_path}")
-                    val_metrics, model_path, metrics_path = training_pipeline(self.config, dataset_file_path=data_path,
-                                                                              logging=logging)
-                    self.models_history.append({"metrics": val_metrics,
-                                                "model_path": model_path,
-                                                "metrics_path": metrics_path})
-        except Exception as e:
-            logging.error(f"Error in running pipeline: {e}")
-
+        for filename in os.listdir(self.dataset_dir):
+            if filename.endswith('.csv'):
+                data_path = os.path.join(self.dataset_dir, filename)
+                logging.info(f"Processing file: {data_path}")
+                val_metrics, model_path, metrics_path = training_pipeline(self.config, dataset_file_path=data_path,
+                                                                          logging=logging)
 
 def monitor_folder(config: dict) -> None:
     """
@@ -106,36 +87,29 @@ def monitor_folder(config: dict) -> None:
     -------
     None
     """
+    observer = Observer()
 
     event_handler = DatasetFolderHandler(config)
-    event_handler.run_pipeline()
-    observer = Observer()
     observer.schedule(event_handler, config["dataset_path"], recursive=True)
     observer.start()
 
-    logging.info(f"Started monitoring folder \"{config['dataset_path']}\"...")
     try:
+        event_handler.run_pipeline()
+
+        logging.info(f"Started monitoring folder \"{config['dataset_path']}\"...")
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        observer.stop()
+        logging.info("Requested exiting...")
+    except Exception as e:
+        logging.error(f"Error occurred: {e}")
+        logging.error(f"Traceback: {traceback.print_tb(e.__traceback__)}")
+
+    observer.stop()
     observer.join()
 
     # print the best model
     logging.info(f"Stopped monitoring folder.")
-    max_r2_score = 0
-    best_model_data = None
-
-    # for each saved model
-    for model_data in event_handler.models_history:
-        r2_score = model_data['metrics']['r2_score']
-
-        if r2_score > max_r2_score:
-            max_r2_score = r2_score
-            best_model_data = model_data
-
-    logging.info("The best model is:")
-    logging.info(best_model_data)
 
 
 def main() -> None:
@@ -148,7 +122,7 @@ def main() -> None:
     """
 
     # load the configuration file
-    config_path = 'config/settings.json'
+    config_path = 'config/training_pipeline.json'
     with open(config_path, 'r') as f:
         config = json.load(f)
 

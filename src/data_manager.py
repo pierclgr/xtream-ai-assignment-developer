@@ -14,7 +14,7 @@ class DataLoader:
 
         Parameters
         ----------
-        file_path (str):
+        file_path: str
             A string that specifies the path of the CSV file to load data from.
 
         Raises
@@ -57,10 +57,10 @@ class DataLoader:
 
         Parameters
         ----------
-        test_size (float):
-            The size in percentage of the test dataset.
-        seed (int):
-            The seed of the random shuffling.
+        test_size: float
+            The size in percentage of the test dataset (default is 0.2).
+        seed: int
+            The seed of the random shuffling (default is 42).
 
         Returns
         -------
@@ -79,14 +79,14 @@ class DataLoader:
         return x_train, x_test, y_train, y_test
 
 
-def diamond_preprocessor(dataframe: pd.DataFrame) -> pd.DataFrame:
+def diamond_linear_preprocessor(dataframe: pd.DataFrame) -> pd.DataFrame:
     """
-    Function performing a preprocessing for diamonds dataset.
+    Function performing a preprocessing for diamonds dataset when using a Linear model.
 
     Parameters
     ----------
-    dataframe (pd.DataFrame):
-        DataFrame that contains the diamonds dataset to preprocess.
+    dataframe: pd.DataFrame
+        Pandas DataFrame that contains the diamonds dataset to preprocess.
 
     Returns
     -------
@@ -103,4 +103,29 @@ def diamond_preprocessor(dataframe: pd.DataFrame) -> pd.DataFrame:
     # create dummy variables for cut, color and clarity
     dataframe = pd.get_dummies(dataframe, columns=['cut', 'color', 'clarity'], drop_first=True)
 
+    return dataframe
+
+
+def diamond_xgb_preprocessor(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """
+    Function performing a preprocessing for diamonds dataset when using a XGB model.
+
+    Parameters
+    ----------
+    dataframe: pd.DataFrame
+        Pandas DataFrame that contains the diamonds dataset to preprocess.
+
+    Returns
+    -------
+    pd.DataFrame:
+        The preprocessed dataframe.
+    """
+
+    dataframe['cut'] = pd.Categorical(dataframe['cut'], categories=['Fair', 'Good', 'Very Good', 'Ideal', 'Premium'],
+                                      ordered=True)
+    dataframe['color'] = pd.Categorical(dataframe['color'], categories=['D', 'E', 'F', 'G', 'H', 'I', 'J'],
+                                        ordered=True)
+    dataframe['clarity'] = pd.Categorical(dataframe['clarity'],
+                                          categories=['IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2', 'I1'],
+                                          ordered=True)
     return dataframe

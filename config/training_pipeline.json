@@ -1,0 +1,77 @@
+{
+  "dataset_path": "data",
+  "models_path": "models",
+  "test_size": 0.2,
+  "random_seed": 42,
+  "preprocessing_fn": "src.data_manager.diamond_xgb_preprocessor",
+  "model": {
+    "class": "xgboost.XGBRegressor",
+    "params": {
+      "enable_categorical": true,
+      "random_state": 42
+    },
+    "log_normalize": false,
+    "parameter_tuning": {
+      "val_perc": 0.2,
+      "random_seed": 42,
+      "metric": "sklearn.metrics.mean_absolute_error",
+      "n_trials": 5,
+      "lambda": {
+        "type": "float",
+        "min": 1e-8,
+        "max": 1.0
+      },
+      "alpha": {
+        "type": "float",
+        "min": 1e-8,
+        "max": 1.0
+      },
+      "colsample_bytree": {
+        "type": "categorical",
+        "values": [
+          0.3,
+          0.4,
+          0.5,
+          0.7
+        ]
+      },
+      "subsample": {
+        "type": "categorical",
+        "values": [
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0
+        ]
+      },
+      "learning_rate": {
+        "type": "float",
+        "min": 1e-8,
+        "max": 1.0
+      },
+      "n_estimators": {
+        "type": "int",
+        "min": 100,
+        "max": 1000
+      },
+      "max_depth": {
+        "type": "int",
+        "min": 3,
+        "max": 9
+      },
+      "min_child_weight": {
+        "type": "int",
+        "min": 1,
+        "max": 10
+      }
+    }
+  },
+  "val_metrics": [
+    "sklearn.metrics.r2_score",
+    "sklearn.metrics.mean_absolute_error"
+  ],
+
+  "log_file": "logging.log"
+}

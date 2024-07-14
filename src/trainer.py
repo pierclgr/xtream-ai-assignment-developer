@@ -3,10 +3,11 @@ import os
 from joblib import dump
 import json
 import numpy as np
-import importlib
+from src.utils import load_module
 from typing import Tuple
 import uuid
-import random
+import optuna
+from sklearn.model_selection import train_test_split
 
 
 class Trainer:
@@ -14,38 +15,127 @@ class Trainer:
     Class that represents a trainer, training a given model with the given dataset.
     """
 
-    def __init__(self, model_dir: str) -> None:
+    def __init__(self, model_dir: str, log_normalize: bool = True) -> None:
         """
         Constructor method of the Trainer class.
 
         Parameters
         ----------
-        model_dir (str):
+        model_dir: str
             The directory containing the saved models.
+        log_normalize: bool
+            A boolean to indicate whether to log normalize the labels in training/validation or not.
+
+        Returns
+        -------
+        None
         """
 
         self.model = None
         self.model_dir = model_dir
+        self.log_normalize = log_normalize
+        self.study = optuna.create_study(direction='minimize', study_name='model_tuning')
 
         # create the directory containing the saved model if it does not exists
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
 
-    def init_model(self, model, params) -> None:
+    def tune(self, x: pd.DataFrame, y: pd.Series, model, params: dict, tuning: dict) -> dict:
         """
+        Method that tunes the hyperparameters of the model, returning the best set of parameters found.
+
+        Parameters
+        ----------
+        x: pd.DataFrame
+            The training features to use for the tuning.
+        y: pd.DataFrame
+            The training labels to use for the tuning.
+        model:
+            The model to tune.
+        params: dict
+            The parameters of the model to tune.
+        tuning: dict
+            The hyperparameters to tune.
+
+        Returns
+        -------
+        dict:
+            A dictionary containing the set of best found hyperparameters.
+        """
+
+        def optimize(trial: optuna.trial.Trial) -> float:
+            """
+            Function to optimize when doing the hyperparmeter tuning.
+
+            Parameters
+            ----------
+            trial: optuna.trial.Trial
+                The trial to train.
+
+            Returns
+            -------
+            float:
+                The metric to optimize.
+            """
+
+            tuning_params = {}
+
+            # extract all the hyperparameters of the tuning
+            tuning_metric = tuning["metric"]
+            seed = tuning["random_seed"]
+            val_perc = tuning["val_perc"]
+
+            for param, value in tuning.items():
+                if isinstance(value, dict):
+                    if value["type"] == "float":
+                        tuning_params[param] = trial.suggest_float(name=param, low=value["min"], high=value["max"],
+                                                                   log=True)
+                    elif value["type"] == "int":
+                        tuning_params[param] = trial.suggest_int(name=param, low=value["min"], high=value["max"])
+                    elif value["type"] == "categorical":
+                        tuning_params[param] = trial.suggest_categorical(name=param, choices=value["values"])
+
+            tuning_params.update(params) if params else tuning_params
+
+            # split the training dataset into training and validation
+            x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=val_perc, random_state=seed)
+
+            # train the model
+            self.init_model(model=model, params=tuning_params)
+            self.train(x_train, y_train)
+
+            # make predictions
+            value_metrics = self.evaluate(x_test=x_val, y_test=y_val, metrics=[tuning_metric])
+
+            return value_metrics[tuning_metric]
+
+        # initialize the tuning study and execute it
+        study = optuna.create_study(direction='minimize', study_name='model tuning')
+        study.optimize(optimize, n_trials=tuning["n_trials"])
+
+        # return the best hyperparameters found
+        return study.best_params
+
+    def init_model(self, model, params: dict = None) -> None:
+        """
+        Method that initializes the model.
+
         Parameters
         ----------
         model:
-            The model class to be trained.
-        params:
-            The parameters of the model to train, if any (default is None).
+            The model class to initialize.
+        params: dict
+            The parameter of the model to initialize, if any (default is None)
+
+        Returns
+        -------
+        None
         """
 
         # define model to train given its parameters
-        if params:
-            self.model = model(params)
-        else:
-            self.model = model()
+        if not params:
+            params = {}
+        self.model = model(**params)
 
     def train(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
         """
@@ -53,9 +143,9 @@ class Trainer:
 
         Parameters
         ----------
-        x_train (pd.DataFrame):
+        x_train: pd.DataFrame
             The features of the training dataset.
-        y_train (pd.Series):
+        y_train: pd.Series
             The labels of the training dataset.
 
         Raises
@@ -68,7 +158,8 @@ class Trainer:
         """
 
         if self.model:
-            y_train = np.log(y_train)
+            if self.log_normalize:
+                y_train = np.log(y_train)
             self.model.fit(x_train, y_train)
         else:
             raise Exception("Model to train not defined.")
@@ -79,11 +170,11 @@ class Trainer:
 
         Parameters
         ----------
-        x_test (pd.DataFrame):
+        x_test: pd.DataFrame
             The features of the testing set to use for the validation.
-        y_test (pd.Series):
+        y_test: pd.Series
             The labels of the testing set to use for the validation.
-        metrics (list):
+        metrics: list
             A list containing the metrics functions to use for the validation.
 
         Raises
@@ -98,21 +189,17 @@ class Trainer:
 
         if self.model:
             # compute predictions
-            pred_log = self.model.predict(x_test)
+            predictions = self.model.predict(x_test)
 
             # compute log transformation of prediction logs
-            predictions = np.exp(pred_log)
-
-            # load the metrics
-            module_name = "sklearn.metrics"
+            if self.log_normalize:
+                predictions = np.exp(predictions)
 
             value_metrics = {}
             # for each metric in the list
             for metric_name in metrics:
-                module = importlib.import_module(module_name)
-
                 # retrieve the class from the module
-                metric_fn = getattr(module, metric_name)
+                metric_fn = load_module(metric_name)
 
                 # compute the metric
                 metric_value = metric_fn(y_test, predictions)
@@ -130,7 +217,7 @@ class Trainer:
 
         Parameters
         ----------
-        metrics (dict):
+        metrics: dict
             A dictionary containing validation metrics of the model to save.
 
         Returns
