@@ -31,6 +31,8 @@ class DatasetFolderHandler(FileSystemEventHandler):
         self.last_modified = None
         self.config = config
 
+        self.models_history = []
+
     def on_any_event(self, event) -> None:
         """
         Method that handles any event in the directory.
