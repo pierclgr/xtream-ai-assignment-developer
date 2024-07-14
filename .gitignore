@@ -169,7 +169,6 @@ cython_debug/
 
 
 models/
-
 data/
 
 .DS_Store

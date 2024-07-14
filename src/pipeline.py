@@ -1,9 +1,10 @@
 from src.data_manager import DataLoader, diamond_preprocessor
 from src.trainer import Trainer
 import importlib
+from typing import Tuple
 
 
-def training_pipeline(config: dict, dataset_file_path: str, logging) -> None:
+def training_pipeline(config: dict, dataset_file_path: str, logging) -> Tuple[dict, str, str]:
     logging.info("Training pipeline started...")
 
     # extract paths of the dataset and directory where to save the model
@@ -57,6 +58,8 @@ def training_pipeline(config: dict, dataset_file_path: str, logging) -> None:
         logging.info(f"Saving model...")
         model_path, metric_path = trainer.save(metrics=val_metrics)
         logging.info(f"Model saved to {model_path}, metrics saved to {metric_path}.")
+
+        return val_metrics, model_path, metric_path
 
     except Exception as e:
         logging.error(f"Error occurred: {e}")
