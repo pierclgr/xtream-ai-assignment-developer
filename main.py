@@ -2,10 +2,6 @@ import json
 import logging
 import os
 from src.pipeline import training_pipeline
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-import time
-import traceback
 
 
 def run_pipeline(config_path: str) -> None:

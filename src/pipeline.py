@@ -2,7 +2,6 @@ from src.data_manager import DataLoader
 from src.trainer import Trainer
 from src.utils import load_module
 from typing import Tuple
-import os
 
 
 def training_pipeline(config: dict, dataset_file_path: str, logging) -> Tuple[dict, str, str]:
