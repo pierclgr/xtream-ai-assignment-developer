@@ -15,7 +15,7 @@
       "val_perc": 0.2,
       "random_seed": 42,
       "metric": "sklearn.metrics.mean_absolute_error",
-      "n_trials": 5,
+      "n_trials": 100,
       "lambda": {
         "type": "float",
         "min": 1e-8,

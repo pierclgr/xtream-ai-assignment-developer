@@ -17,8 +17,15 @@ app = FastAPI()
 thread_local = threading.local()
 
 
-# function to get a new SQLite connection
 def get_connection():
+    """
+    Function to get a new SQLite connection.
+
+    Returns
+    -------
+    SQLite connection
+    """
+
     if not hasattr(thread_local, "connection"):
         if not os.path.exists(config["request_database"]):
             open('requests.db', 'a').close()  # Create an empty file if it doesn't exist
@@ -26,13 +33,25 @@ def get_connection():
     return thread_local.connection
 
 
-# function to get a new SQLite cursor
 def get_cursor():
+    """
+    Function to get a new SQLite cursor.
+
+    Returns
+    -------
+    SQLite cursor
+    """
+
     return get_connection().cursor()
 
 
-# ensure table creation when the application starts
-def create_table():
+def create_requests_table():
+    """
+    Function to create a table of requests in the database if it does not exist.
+    Returns
+    -------
+
+    """
     cursor = get_cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS requests (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,6 +64,10 @@ def create_table():
 
 
 class PredictRequest(BaseModel):
+    """
+    Class that represents a predict request.
+    """
+
     carat: float
     cut: str
     color: str
@@ -57,6 +80,10 @@ class PredictRequest(BaseModel):
 
 
 class SamplesRequest(BaseModel):
+    """
+    Class that represents a samples request.
+    """
+
     cut: str
     color: str
     clarity: str
@@ -64,19 +91,23 @@ class SamplesRequest(BaseModel):
     n_samples: int = 5
 
 
-# Initialize model manager and load configuration
+# load configuration file
 with open('config/api.json', 'r') as f:
     config = json.load(f)
 
-create_table()
+# create requests table
+create_requests_table()
 
+# extract the metric to use to choose the best model
 best_metric = config['best_metric']
 
+# load the dataset
 try:
     dataframe = pd.read_csv(config["dataset_path"])
 except:
     raise HTTPException(status_code=500, detail="Dataset could not be loaded")
 
+# initialize the model manager
 try:
     mm = ModelManager(config)
 except:
@@ -85,6 +116,21 @@ except:
 
 @app.post("/predict")
 def predict(request: PredictRequest):
+    """
+    Function representing the predict endpoint.
+
+    Parameters
+    ----------
+    request: PredictRequest
+        The body of the predict request.
+
+    Returns
+    -------
+    dict:
+        The predicted value.
+    """
+
+    # load models and get the best one
     try:
         mm.load_models_and_metrics()
         model = mm.get_best_model(best_metric)
@@ -92,6 +138,7 @@ def predict(request: PredictRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {e}")
 
+    # preprocess the data
     features = pd.DataFrame([request.dict()])
     preprocessor_name = model['preprocessor']['preprocessor']
     log_normalize = model['preprocessor']['log_normalize']
@@ -113,13 +160,14 @@ def predict(request: PredictRequest):
     else:
         features = preprocessor(features)
 
+    # compute the prediction
     prediction = model["model"].predict(features)
     if log_normalize:
         prediction = np.exp(prediction)
 
     prediction = float(prediction[0])
 
-    # Save request and response to database
+    # save request and response to database
     cursor = get_cursor()
     cursor.execute('''INSERT INTO requests (endpoint, request, response) VALUES (?, ?, ?)''',
                    ('predict', json.dumps(request.dict()), json.dumps({"predicted_value": prediction})))
@@ -130,23 +178,39 @@ def predict(request: PredictRequest):
 
 @app.post("/samples")
 def get_samples(request: SamplesRequest):
+    """
+    Function representing the get samples endpoint.
+
+    Parameters
+    ----------
+    request: SamplesRequest
+        The body of the get samples request.
+
+    Returns
+    -------
+    dict:
+        A dictionary containing the list of samples.
+    """
+
     cut = request.cut
     color = request.color
     clarity = request.clarity
     weight = request.weight
     n_samples = request.n_samples
 
+    # filter samples by cut, color and clarity
     filtered_df = dataframe[
         (dataframe['cut'] == cut) & (dataframe['color'] == color) & (dataframe['clarity'] == clarity)]
 
     if filtered_df.empty:
         raise HTTPException(status_code=404, detail="No matching samples found")
 
+    # order extracted samples by weight difference
     filtered_df['weight_diff'] = np.abs(filtered_df['carat'] - weight)
     filtered_df = filtered_df.sort_values(by='weight_diff').head(n_samples)
     filtered_df = filtered_df.drop(columns=['weight_diff'])
 
-    # Save request and response to database
+    # save request and response to database
     response = filtered_df.to_dict(orient='records')
     cursor = get_cursor()
     cursor.execute('''INSERT INTO requests (endpoint, request, response) VALUES (?, ?, ?)''',
