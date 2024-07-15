@@ -1,0 +1,21 @@
+{
+  "dataset_path": "data",
+  "models_path": "models",
+  "test_size": 0.2,
+  "random_seed": 42,
+  "preprocessing_fn": "src.data_manager.diamond_linear_preprocessor",
+  "model": {
+    "class": "sklearn.linear_model.LinearRegression",
+    "params": {
+    },
+    "log_normalize": true,
+    "parameter_tuning": {
+    }
+  },
+  "val_metrics": [
+    "sklearn.metrics.r2_score",
+    "sklearn.metrics.mean_absolute_error"
+  ],
+
+  "log_file": "logging.log"
+}

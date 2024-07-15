@@ -68,4 +68,72 @@ Observability is key. Save every request and response made to the APIs to a **pr
 ---
 
 ## How to run
-Please fill this section as part of the assignment.
+In order to run the application, it is necessary to create a Python virtual environment with the given requirements file. It is enough to open a terminal, move to the repository directory and run the following commands
+
+```bash
+python -m venv venv
+
+# run if on Linux/unix
+source venv/bin/activate
+
+# run if on windows
+venv\Scripts\activate
+
+pip install -r requirements.txt
+```
+
+Then, in order to run the training it is enough to execute the script *main.py* with the following command
+```bash
+# run if on Linux/unix
+source venv/bin/activate
+
+# run if on windows
+venv\Scripts\activate
+
+python main.py
+```
+
+If you want to perform some other training tests, it is enough to edit the configuration file in *config/training_pipeline.json* with the parameters you need for the training. Then, by running the script *main.py*, it will perform a training for each *.csv* in the folder specified in the configuration.
+
+Finally, to run the app, it is enough to execute the following commands
+```bash
+# run if on Linux/unix
+source venv/bin/activate
+
+# run if on windows
+venv\Scripts\activate
+
+python app.py
+```
+
+The app automatically selects the best available model among the trained ones.
+Then, by heading to [http:0.0.0.0:8000/docs](http:0.0.0.0:8000/docs), you will access Swagger UI to test and query the app API.
+
+You can predict a value for a diamond by testing the /predict endpoint with a request similar to
+```json
+{
+    "carat": 1.0,
+    "cut": "Ideal",
+    "color": "E",
+    "clarity": "VVS1",
+    "depth": 61.0,
+    "table": 55.0,
+    "x": 6.5,
+    "y": 6.5,
+    "z": 4.0
+}
+```
+
+You can also, given the features of a diamond, return n samples from the training dataset with the same cut, color, and clarity, and the most similar weight, with a request to the /samples endpoint similar to
+```json
+{
+    "cut": "Ideal",
+    "color": "E",
+    "clarity": "VVS1",
+    "weight": 1.0,
+    "n_samples": 5
+}
+```
+
+Finally, by accessing the /logs endpoint, you can get the list of sent requests.
+ 
