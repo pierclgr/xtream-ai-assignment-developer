@@ -13,23 +13,22 @@ class DatasetFolderHandler(FileSystemEventHandler):
     Class that handles a dataset folder and runs the training pipeline everytime the folder is updated.
     """
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config_path: str) -> None:
         """
         Constructor method of the DatasetFolderHandler class.
 
         Parameters
         ----------
-        config: dict
-            The dictionary containing the settings of the training, extracted from the config file.
+        config_path: str
+            The path of the config file.
 
         Returns
         -------
         None
         """
 
-        self.dataset_dir = config['dataset_path']
         self.last_modified = None
-        self.config = config
+        self.config_path = config_path
 
     def on_any_event(self, event) -> None:
         """
@@ -67,31 +66,48 @@ class DatasetFolderHandler(FileSystemEventHandler):
         None
         """
 
-        for filename in os.listdir(self.dataset_dir):
+        # load the config
+        with open(self.config_path, 'r') as f:
+            config = json.load(f)
+        dataset_dir = config["dataset_path"]
+
+        # define logging
+        log_file = config['log_file']
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(levelname)s %(message)s',
+                            handlers=[
+                                logging.FileHandler(log_file),
+                                logging.StreamHandler()
+                            ])
+
+        for filename in os.listdir(dataset_dir):
             if filename.endswith('.csv'):
-                data_path = os.path.join(self.dataset_dir, filename)
+                data_path = os.path.join(dataset_dir, filename)
                 logging.info(f"Processing file: {data_path}")
-                training_pipeline(self.config, dataset_file_path=data_path,
+                training_pipeline(config, dataset_file_path=data_path,
                                   logging=logging)
 
 
-def monitor_folder(config: dict) -> None:
+def monitor_folder(config_path: str) -> None:
     """
     Function that runs the DatasetFolderHandler.
 
     Parameters
     ----------
-    config (dict):
-        The config of the training.
+    config: str
+        The path of the config of the training.
 
     Returns
     -------
     None
     """
     observer = Observer()
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    dataset_dir = config["dataset_path"]
 
-    event_handler = DatasetFolderHandler(config)
-    observer.schedule(event_handler, config["dataset_path"], recursive=True)
+    event_handler = DatasetFolderHandler(config_path)
+    observer.schedule(event_handler, dataset_dir, recursive=True)
     observer.start()
 
     try:
@@ -124,23 +140,8 @@ def main() -> None:
 
     # load the configuration file
     config_path = 'config/training_pipeline.json'
-    with open(config_path, 'r') as f:
-        config = json.load(f)
 
-    # define logging
-    log_file = config['log_file']
-
-    if os.path.exists(log_file):
-        os.remove(log_file)
-
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s %(levelname)s %(message)s',
-                        handlers=[
-                            logging.FileHandler(log_file),
-                            logging.StreamHandler()
-                        ])
-
-    monitor_folder(config)
+    monitor_folder(config_path)
 
 
 if __name__ == '__main__':
